@@ -7,30 +7,44 @@ namespace LootTowerPrototype
     {
         static void Main(string[] args)
         {
-            // Optional: parse a seed from the command line
+            // Optional: parse seed
             int seed = 12345;
             if (args.Length > 0 && int.TryParse(args[0], out int parsedSeed))
             {
                 seed = parsedSeed;
             }
 
-            // Instantiate FloorGenerator with our chosen seed
             FloorGenerator generator = new FloorGenerator(seed);
 
-            // Generate a floor with multi-room and corridor approach
-            Tile[,] floor = generator.GenerateFloor(width: 40, height: 20);
+            // Let's use a bigger map for variety
+            Tile[,] floor = generator.GenerateFloor(width: 50, height: 20);
 
-            // Print the result in ASCII
+            // Print the layout with theme-based symbols
             for (int y = 0; y < floor.GetLength(0); y++)
             {
                 for (int x = 0; x < floor.GetLength(1); x++)
                 {
-                    Console.Write(floor[y, x].IsWall ? "#" : ".");
+                    if (floor[y, x].IsWall)
+                    {
+                        // Walls
+                        Console.Write("#");
+                    }
+                    else
+                    {
+                        // The floor tile has a theme
+                        switch (floor[y, x].Theme)
+                        {
+                            case RoomTheme.Library: Console.Write("L"); break;
+                            case RoomTheme.Prison:  Console.Write("P"); break;
+                            case RoomTheme.Cave:    Console.Write("C"); break;
+                            case RoomTheme.Generic: Console.Write("G"); break;
+                            default:                Console.Write("."); break; // corridor or None
+                        }
+                    }
                 }
                 Console.WriteLine();
             }
 
-            // Pause so the console stays open
             Console.WriteLine("\nPress any key to exit...");
             Console.ReadKey();
         }
