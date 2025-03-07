@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\chdcr\\Documents\\LootTowerPrototype\\LootTowerPrototype.csproj": {}
+    "C:\\Users\\student\\LootTowerPrototype\\LootTowerPrototype.csproj": {}
   },
   "projects": {
-    "C:\\Users\\chdcr\\Documents\\LootTowerPrototype\\LootTowerPrototype.csproj": {
+    "C:\\Users\\student\\LootTowerPrototype\\LootTowerPrototype.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\chdcr\\Documents\\LootTowerPrototype\\LootTowerPrototype.csproj",
+        "projectUniqueName": "C:\\Users\\student\\LootTowerPrototype\\LootTowerPrototype.csproj",
         "projectName": "LootTowerPrototype",
-        "projectPath": "C:\\Users\\chdcr\\Documents\\LootTowerPrototype\\LootTowerPrototype.csproj",
-        "packagesPath": "C:\\Users\\chdcr\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\chdcr\\Documents\\LootTowerPrototype\\obj\\",
+        "projectPath": "C:\\Users\\student\\LootTowerPrototype\\LootTowerPrototype.csproj",
+        "packagesPath": "C:\\Users\\student\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\student\\LootTowerPrototype\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\chdcr\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\student\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
