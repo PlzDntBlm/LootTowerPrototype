@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("LootTowerPrototype")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+040e417b07ef52c1a19881d47dee8b384227dfc6")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5b3b76a08f6b83dbc128fbdde9a979b22408d78b")]
 [assembly: System.Reflection.AssemblyProductAttribute("LootTowerPrototype")]
 [assembly: System.Reflection.AssemblyTitleAttribute("LootTowerPrototype")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
