@@ -35,43 +35,39 @@ namespace LootTowerPrototype.FloorGeneration
 
         public Tile[,] GenerateFloor(int width, int height)
         {
-            // 1. Fill map with walls
+            // 1. Fill the map with walls
             Tile[,] map = new Tile[height, width];
             for (int y = 0; y < height; y++)
             {
                 for (int x = 0; x < width; x++)
                 {
-                    map[y, x] = new Tile(true); // All walls initially
+                    map[y, x] = new Tile(true);
                 }
             }
 
-            // 2. Decide how many rooms to create
-            int roomCount = _random.Next(5, 10); 
+            // 2. Decide how many rooms to attempt
+            int desiredRoomCount = _random.Next(5, 10);
+
             List<Room> rooms = new List<Room>();
 
-            // 3. Generate each room
-            for (int i = 0; i < roomCount; i++)
+            // 3. For each room we want, try placing it without overlap
+            for (int i = 0; i < desiredRoomCount; i++)
             {
-                int rWidth = _random.Next(4, 10);
-                int rHeight = _random.Next(4, 10);
+                Room newRoom = TryCreateNonOverlappingRoom(width, height, rooms);
 
-                int rX = _random.Next(0, width - rWidth);
-                int rY = _random.Next(0, height - rHeight);
-
-                // Random theme from the set, ignoring "None" for actual rooms
-                RoomTheme theme = GetRandomRoomTheme();
-
-                // 50/50 chance to be elliptical or rectangular
-                bool isEllipse = (_random.NextDouble() < 0.5);
-
-                Room newRoom = new Room(rX, rY, rWidth, rHeight, theme, isEllipse);
-                CarveRoom(map, newRoom);
-
-                rooms.Add(newRoom);
+                if (newRoom != null)
+                {
+                    // Carve the newly placed room
+                    CarveRoom(map, newRoom);
+                    rooms.Add(newRoom);
+                }
+                // If newRoom is null, it means we couldn't find a valid spot 
+                // after multiple tries, so we skip placing a room this iteration.
             }
 
             // 4. Sort the rooms by center X and connect them with corridors
             rooms.Sort((a, b) => a.CenterX.CompareTo(b.CenterX));
+
             for (int i = 0; i < rooms.Count - 1; i++)
             {
                 ConnectRooms(map, rooms[i], rooms[i + 1]);
@@ -80,17 +76,73 @@ namespace LootTowerPrototype.FloorGeneration
             return map;
         }
 
+        private Room TryCreateNonOverlappingRoom(int mapWidth, int mapHeight, List<Room> existingRooms)
+        {
+            // We'll try up to 10 times to place a new room of random size, shape, theme
+            const int MaxPlacementAttempts = 10;
+
+            for (int attempt = 0; attempt < MaxPlacementAttempts; attempt++)
+            {
+                int rWidth = _random.Next(4, 10);
+                int rHeight = _random.Next(4, 10);
+
+                int rX = _random.Next(0, mapWidth - rWidth);
+                int rY = _random.Next(0, mapHeight - rHeight);
+
+                RoomTheme theme = GetRandomRoomTheme();
+                bool isEllipse = (_random.NextDouble() < 0.5);
+
+                Room candidate = new Room(rX, rY, rWidth, rHeight, theme, isEllipse);
+
+                // Check overlap
+                if (!DoesOverlap(candidate, existingRooms))
+                {
+                    // Success! Return this new room
+                    return candidate;
+                }
+            }
+            // If we reach here, we failed to place a non-overlapping room 
+            // after multiple attempts
+            return null;
+        }
+
+        private bool DoesOverlap(Room candidate, List<Room> existingRooms)
+        {
+            // We'll do a simple bounding-box overlap check. 
+            // If bounding boxes overlap, we consider that an overlap.
+            foreach (Room r in existingRooms)
+            {
+                // Check if rectangles (candidate, r) overlap
+                if (RectanglesOverlap(candidate.X, candidate.Y, candidate.Width, candidate.Height,
+                                      r.X, r.Y, r.Width, r.Height))
+                {
+                    return true; 
+                }
+            }
+            return false;
+        }
+
+        private bool RectanglesOverlap(int x1, int y1, int w1, int h1,
+                                       int x2, int y2, int w2, int h2)
+        {
+            // If one rectangle is to the left of the other
+            if (x1 + w1 <= x2 || x2 + w2 <= x1) return false;
+            // If one rectangle is above the other
+            if (y1 + h1 <= y2 || y2 + h2 <= y1) return false;
+
+            return true; // otherwise, they overlap
+        }
+
         private void CarveRoom(Tile[,] map, Room room)
         {
             if (!room.IsEllipse)
             {
-                // Rectangular room
+                // Rectangular
                 for (int y = room.Y; y < room.Y + room.Height; y++)
                 {
                     for (int x = room.X; x < room.X + room.Width; x++)
                     {
                         map[y, x].IsWall = false;
-                        // Assign the tile's theme to match the room's
                         map[y, x].Theme = room.Theme;
                     }
                 }
@@ -98,18 +150,18 @@ namespace LootTowerPrototype.FloorGeneration
             else
             {
                 // Elliptical approximation
-                float rx = room.Width / 2f;   // horizontal radius
-                float ry = room.Height / 2f;  // vertical radius
-                float cx = room.X + rx;       // center X
-                float cy = room.Y + ry;       // center Y
+                float rx = room.Width / 2f;  
+                float ry = room.Height / 2f; 
+                float cx = room.X + rx;     
+                float cy = room.Y + ry;     
 
                 for (int y = room.Y; y < room.Y + room.Height; y++)
                 {
                     for (int x = room.X; x < room.X + room.Width; x++)
                     {
-                        // Check ellipse equation (x-cx)^2 / rx^2 + (y-cy)^2 / ry^2 <= 1
-                        float dx = (x - cx);
-                        float dy = (y - cy);
+                        float dx = x - cx;
+                        float dy = y - cy;
+                        // ellipse equation: (dx^2 / rx^2 + dy^2 / ry^2 <= 1)
                         if ((dx * dx) / (rx * rx) + (dy * dy) / (ry * ry) <= 1.0f)
                         {
                             map[y, x].IsWall = false;
@@ -122,7 +174,6 @@ namespace LootTowerPrototype.FloorGeneration
 
         private void ConnectRooms(Tile[,] map, Room r1, Room r2)
         {
-            // Simple L-shaped corridor from r1 center to r2 center
             int x1 = r1.CenterX;
             int y1 = r1.CenterY;
             int x2 = r2.CenterX;
@@ -132,21 +183,20 @@ namespace LootTowerPrototype.FloorGeneration
             for (int x = Math.Min(x1, x2); x <= Math.Max(x1, x2); x++)
             {
                 map[y1, x].IsWall = false;
-                map[y1, x].Theme = RoomTheme.None; // corridor is unthemed
+                map[y1, x].Theme = RoomTheme.None;
             }
 
             // Vertical carve
             for (int y = Math.Min(y1, y2); y <= Math.Max(y1, y2); y++)
             {
                 map[y, x2].IsWall = false;
-                map[y, x2].Theme = RoomTheme.None; // corridor is unthemed
+                map[y, x2].Theme = RoomTheme.None;
             }
         }
 
         private RoomTheme GetRandomRoomTheme()
         {
-            // Weighted random selection from these four
-            int t = _random.Next(1, 5); // between 1..4
+            int t = _random.Next(1, 5); // 1..4
             switch (t)
             {
                 case 1: return RoomTheme.Library;
