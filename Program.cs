@@ -17,7 +17,7 @@ namespace LootTowerPrototype
             FloorGenerator generator = new FloorGenerator(seed);
 
             // Let's use a bigger map for variety
-            Tile[,] floor = generator.GenerateFloor(width: 50, height: 20);
+            Tile[,] floor = generator.GenerateFloor(width: 50, height: 50);
 
             // Print the layout with theme-based symbols
             for (int y = 0; y < floor.GetLength(0); y++)

@@ -11,6 +11,8 @@ namespace LootTowerPrototype.FloorGeneration
         private class Room
         {
             public int X, Y, Width, Height;
+            // We no longer rely strictly on center-based connection,
+            // but still store them for reference or fallback.
             public int CenterX => X + Width / 2;
             public int CenterY => Y + Height / 2;
             public RoomTheme Theme { get; set; }
@@ -25,6 +27,14 @@ namespace LootTowerPrototype.FloorGeneration
                 Height = height;
                 Theme = theme;
                 IsEllipse = isEllipse;
+            }
+
+            // Pick a random point within the room area
+            public (int x, int y) GetRandomPointInside(Random rng)
+            {
+                int rx = X + rng.Next(Width);
+                int ry = Y + rng.Next(Height);
+                return (rx, ry);
             }
         }
 
@@ -61,11 +71,29 @@ namespace LootTowerPrototype.FloorGeneration
                 }
             }
 
-            // 4. Sort the rooms by center X and connect them with corridors
+            // 4. Connect rooms
+            // Sort by center X just as a basic approach
             rooms.Sort((a, b) => a.CenterX.CompareTo(b.CenterX));
+
+            // Create at least one corridor between consecutive rooms
             for (int i = 0; i < rooms.Count - 1; i++)
             {
-                ConnectRooms(map, rooms[i], rooms[i + 1]);
+                ConnectRoomsInInterestingWay(map, rooms[i], rooms[i + 1]);
+            }
+
+            // Optional: chance to add a second corridor between random pairs
+            // for more interconnectivity
+            int extraConnections = _random.Next(0, rooms.Count / 2);
+            for (int i = 0; i < extraConnections; i++)
+            {
+                var r1 = rooms[_random.Next(rooms.Count)];
+                var r2 = rooms[_random.Next(rooms.Count)];
+                if (r1 != r2)
+                {
+                    // Low chance to connect them, but only if they are not too close
+                    // or the same instance. Just a fun random link.
+                    ConnectRoomsInInterestingWay(map, r1, r2);
+                }
             }
 
             return map;
@@ -158,32 +186,85 @@ namespace LootTowerPrototype.FloorGeneration
             }
         }
 
-        // Corridor carve that won't overwrite an existing floor's theme
-        private void ConnectRooms(Tile[,] map, Room r1, Room r2)
+        /// <summary>
+        /// Connect two rooms using a more interesting path approach,
+        /// optionally including some random wiggling or diagonal movement.
+        /// </summary>
+        private void ConnectRoomsInInterestingWay(Tile[,] map, Room r1, Room r2)
         {
-            int x1 = r1.CenterX;
-            int y1 = r1.CenterY;
-            int x2 = r2.CenterX;
-            int y2 = r2.CenterY;
+            // Randomly pick points inside each room, not just the center
+            (int startX, int startY) = r1.GetRandomPointInside(_random);
+            (int endX, int endY) = r2.GetRandomPointInside(_random);
 
-            // Horizontal carve
-            for (int x = Math.Min(x1, x2); x <= Math.Max(x1, x2); x++)
+            // We'll do a quick random walk approach from start to end
+            // that can occasionally step diagonally or deviate slightly.
+            int x = startX;
+            int y = startY;
+
+            // We'll iterate a maximum number of steps to avoid infinite loops
+            int maxSteps = map.GetLength(0) * map.GetLength(1);
+
+            while ((x != endX || y != endY) && maxSteps-- > 0)
             {
-                if (map[y1, x].IsWall)
+                // Carve current
+                if (map[y, x].IsWall)
                 {
-                    map[y1, x].IsWall = false;
-                    map[y1, x].Theme = RoomTheme.None;
+                    map[y, x].IsWall = false;
+                    map[y, x].Theme = RoomTheme.None;
                 }
+
+                int dx = endX - x;
+                int dy = endY - y;
+
+                // Step direction tries to reduce both dx, dy
+                // Introduce a small random chance to deviate or use diagonal
+                int stepX = Math.Sign(dx);
+                int stepY = Math.Sign(dy);
+
+                bool allowDiagonal = (_random.NextDouble() < 0.2); // 20% chance to do diagonal
+                if (allowDiagonal && stepX != 0 && stepY != 0)
+                {
+                    // Step diagonally
+                    x += stepX;
+                    y += stepY;
+                }
+                else
+                {
+                    // Weighted random: horizontal or vertical first
+                    if (Math.Abs(dx) > Math.Abs(dy))
+                    {
+                        x += stepX;
+                    }
+                    else
+                    {
+                        y += stepY;
+                    }
+                }
+
+                // Additional random small deviation
+                if (_random.NextDouble() < 0.1) // 10% chance
+                {
+                    // Try a small random turn
+                    int turnDirection = _random.Next(4);
+                    switch (turnDirection)
+                    {
+                        case 0: if (y > 0) y -= 1; break;
+                        case 1: if (y < map.GetLength(0) - 1) y += 1; break;
+                        case 2: if (x > 0) x -= 1; break;
+                        case 3: if (x < map.GetLength(1) - 1) x += 1; break;
+                    }
+                }
+
+                // Clamp
+                x = Math.Max(0, Math.Min(x, map.GetLength(1) - 1));
+                y = Math.Max(0, Math.Min(y, map.GetLength(0) - 1));
             }
 
-            // Vertical carve
-            for (int y = Math.Min(y1, y2); y <= Math.Max(y1, y2); y++)
+            // Carve final position
+            if (map[y, x].IsWall)
             {
-                if (map[y, x2].IsWall)
-                {
-                    map[y, x2].IsWall = false;
-                    map[y, x2].Theme = RoomTheme.None;
-                }
+                map[y, x].IsWall = false;
+                map[y, x].Theme = RoomTheme.None;
             }
         }
 
